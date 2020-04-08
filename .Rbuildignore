@@ -6,3 +6,7 @@
 ^README.Rmd$
 ^README.md$
 ^NEWS.md$
+^stan/
+^_pkgdown\.yml$
+^docs$
+^pkgdown$

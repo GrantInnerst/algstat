@@ -4,11 +4,27 @@
 \alias{rvnorm}
 \title{The Variety Normal Distribution}
 \usage{
-rvnorm(n, poly, sd, output = "simple", chains = 4L,
-  warmup = floor(n/2), keep_warmup = FALSE, thin = 1L,
-  inject_direct = FALSE, verbose = FALSE,
-  cores = getOption("mc.cores", 1L), normalized = TRUE, w, vars,
-  numerator, denominator, refresh, code_only = FALSE, ...)
+rvnorm(
+  n,
+  poly,
+  sd,
+  output = "simple",
+  chains = 4L,
+  warmup = floor(n/2),
+  keep_warmup = FALSE,
+  thin = 1L,
+  inject_direct = FALSE,
+  verbose = FALSE,
+  cores = getOption("mc.cores", 1L),
+  normalized = TRUE,
+  w,
+  vars,
+  numerator,
+  denominator,
+  refresh,
+  code_only = FALSE,
+  ...
+)
 }
 \arguments{
 \item{n}{The number of draws desired from each chain after warmup.}
@@ -96,47 +112,46 @@ plot(samps, asp = 1)
 # returning a data frame
 (samps <- rvnorm(2000, p, sd = .1, output = "tibble"))
 ggplot(samps, aes(x, y)) + geom_point(size = .5) + coord_equal()
-ggplot(samps, aes(x, y, color = `g[1]`)) +
+
+ggplot(samps, aes(x, y, color = g)) +
   geom_point(size = .5) +
   scale_color_gradient2() +
   coord_equal()
+  
+ggplot(samps, aes(x, y)) + 
+  stat_density2d(
+    aes(fill = stat(density)), 
+    geom = "raster", contour = FALSE
+   ) + 
+  coord_equal()
 
 
-# more than one polynomial, # vars >= # eqns
+
+# more than one polynomial, # vars > # eqns, underdetermined system
 p <- mp(c("x^2 + y^2 + z^2 - 1", "z"))
-samps <- rvnorm(500, p, sd = .1, output = "tibble")
+(samps <- rvnorm(500, p, sd = .1, output = "tibble"))
+ggplot(samps, aes(x, y)) + geom_point(size = .5) + coord_equal()
 
-ggplot(samps, aes(x, y)) +
-  geom_point(size = .5) +
-  coord_equal()
+ggplot(samps, aes(x, y, color = `g[1]`)) + geom_point() +
+  scale_color_gradient2(mid = "gray80") + coord_equal()
 
-ggplot(samps, aes(x, y, color = `g[1]`)) +
-  geom_point(size = .5) +
-  scale_color_gradient2() +
-  coord_equal()
+ggplot(samps, aes(x, y, color = `g[2]`)) + geom_point() +
+  scale_color_gradient2(mid = "gray80") + coord_equal()
 
-ggplot(samps, aes(x, y, color = `g[2]`)) +
-  geom_point(size = .5) +
-  scale_color_gradient2() +
-  coord_equal()
-
-ggplot(samps, aes(x, z, color = `g[2]`)) +
-  geom_point(size = .5) +
-  scale_color_gradient2() +
-  coord_equal()
+ggplot(samps, aes(x, z, color = `g[1]`)) + geom_point() +
+  scale_color_gradient2(mid = "gray80") + coord_equal()
 
 
-# overdetermined system, vars < # eqns (not yet supported)
-p <- mp(c("x", "y", "x + y", "3 (x^2 + y)", "3 (x^2 - y)"))
-samps <- rvnorm(500, p, sd = .1, output = "tibble")
+
+# more than one polynomial, # vars < # eqns, overdetermined system
+p <- mp(c("3 x", "3 y", "2 x + 2 y", "3 (x^2 + y)", "3 (x^2 - y)"))
+(samps <- rvnorm(500, p, sd = .1, output = "tibble"))
 
 samps \%>\% 
   select(x, y, starts_with("g")) \%>\% 
   pivot_longer(starts_with("g"), "equation", "value") \%>\% 
-  ggplot(aes(x, y, color = value)) +
-    geom_point(size = .5) +
-    scale_color_gradient2() +
-    coord_equal() +
+  ggplot(aes(x, y, color = value)) + geom_point() +
+    scale_color_gradient2(mid = "gray80") + coord_equal() +
     facet_wrap(~ equation)
     
 
@@ -144,7 +159,6 @@ samps \%>\%
 ########################################
 
 rvnorm(2000, p, sd = .1, "tibble", verbose = TRUE)
-rvnorm(2000, p, sd = .1, "tibble", refresh = 100)
 rvnorm(2000, p, sd = .1, "tibble", refresh = 500)
 rvnorm(2000, p, sd = .1, "tibble", refresh = 0) # default
 rvnorm(2000, p, sd = .1, "tibble", refresh = -1)
@@ -156,9 +170,9 @@ rvnorm(2000, p, sd = .1, "tibble", refresh = -1)
 
 options(mc.cores = parallel::detectCores())
 p <- mp("x^2 + (4 y)^2 - 1")
-samps <- rvnorm(250, p, sd = .01, "tibble", verbose = TRUE, chains = 8)
-ggplot(samps, aes(x, y)) + geom_point() + coord_equal()
-
+(samps <- rvnorm(1e4, p, sd = .01, "tibble", verbose = TRUE, chains = 8))
+ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .01*c(1,1)) + coord_equal()
+# decrease sd to get more uniform sampling
 
 
 ## windowing for unbounded varieties
@@ -166,17 +180,17 @@ ggplot(samps, aes(x, y)) + geom_point() + coord_equal()
 # windowing is needed for unbounded varieties
 # in the following, look at the parameters block
 
-p <- mp("x y - 1") # unbounded variety
+p <- mp("x y - 1") # unbounded variety, 1 poly
+p <- mp(c("x y - 1", "y - x")) # 2 polys
 
 rvnorm(1e3, p, sd = .01, "tibble", code_only = TRUE)
-
-rvnorm(1e3, p, sd = .01, "tibble", w = 1.15, code_only = TRUE)
+rvnorm(1e3, p, sd = .01, "tibble", code_only = TRUE, w = 1.15)
 
 window <- list("x" = c(-1.5, 1.25), "y" = c(-2, 1.5))
-rvnorm(1e3, p, sd = .01, "tibble", w = window, code_only = TRUE)
+rvnorm(1e3, p, sd = .01, "tibble", code_only = TRUE, w = window)
 
 window <- list("x" = c(-1.5, 1.5))
-rvnorm(1e3, p, sd = .01, "tibble", w = window, code_only = TRUE)
+rvnorm(1e3, p, sd = .01, "tibble", code_only = TRUE, w = window)
 
 
 
@@ -189,12 +203,14 @@ rvnorm(1e3, p, sd = .01, "tibble", w = window, code_only = TRUE)
 p <- mp("(x^2 + y^2)^2 - 2 (x^2 - y^2)")
 
 # normalized, good
-(samps <- rvnorm(2000, p, .025, "tibble"))
+(samps <- rvnorm(2000, p, .05, "tibble"))
 ggplot(samps, aes(x, y)) + geom_point(size = .5) + coord_equal()
+ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .05*c(1,1)) + coord_equal()
 
 # unnormalized, bad
-(samps <- rvnorm(2000, p, .025, "tibble", normalized = FALSE))
+(samps <- rvnorm(2000, p, .05, "tibble", normalized = FALSE))
 ggplot(samps, aes(x, y)) + geom_point(size = .5) + coord_equal()
+ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .05*c(1,1)) + coord_equal()
 
 
 
@@ -206,20 +222,20 @@ ggplot(samps, aes(x, y)) + geom_point(size = .5) + coord_equal()
 # this is the projection of the sphere into the xy-plane.
 
 p <- mp("1 - (x^2 + y^2) - s^2")
-samps <- rvnorm(1e4, p, sd = .01, "tibble", chains = 8)
-ggplot(samps, aes(x, y)) + geom_point(size = .5) + coord_equal()
-ggplot(samps, aes(x, y)) + geom_bin2d() + coord_equal()
+samps <- rvnorm(1e4, p, sd = .1, "tibble", chains = 8, refresh = 1e3)
+ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .05*c(1,1)) + coord_equal()
 
 ggplot(sample_n(samps, 2e3), aes(x, y, color = s)) +
   geom_point(size = .5) +
+  scale_color_gradient2() +
   coord_equal()
 
 # alternative representation
-# x^2 + y^2 - 1 <= 0 iff s^2 (x^2 + y^2 - 1) == -1
-# so that s^2 (x^2 + y^2 - 1) + 1 == 0
-# while this strategy works in theory, it doesn't work
-# so well in practice, since s^2 is unbounded.
-# it's gradient is also more complicated.
+# x^2 + y^2 - 1 <= 0 iff s^2 (x^2 + y^2 - 1) + 1 == 0
+# note that it's gradient is more complicated.
+p <- mp("s^2 (x^2 + y^2 - 1) + 1")
+samps <- rvnorm(1e4, p, sd = .1, "tibble", chains = 8, w = 2, refresh = 1e3)
+ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .05*c(1,1)) + coord_equal()
 
 
 ## keeping the warmup / the importance of multiple chains
@@ -228,9 +244,15 @@ ggplot(sample_n(samps, 2e3), aes(x, y, color = s)) +
 p <- mp("((x + 1.5)^2 + y^2 - 1) ((x - 1.5)^2 + y^2 - 1)")
 ggvariety(p, xlim = c(-3,3)) + coord_equal()
 
-samps <- rvnorm(500, p, sd = .05, "tibble", chains = 8, keep_warmup = TRUE, w = 5)
+# notice the migration of chains initialized away from the distribution
+# (it helps to make the graphic large on your screen)
+samps <- rvnorm(500, p, sd = .05, "tibble", chains = 8, keep_warmup = TRUE)
 ggplot(samps, aes(x, y, color = iter)) +
   geom_point(size = 1, alpha = .5) + geom_path(alpha = .2) +
+  coord_equal() + facet_wrap(~ factor(chain))
+  
+samps <- rvnorm(2500, p, sd = .05, "tibble", chains = 8, keep_warmup = TRUE)
+ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .05*c(1,1)) + 
   coord_equal() + facet_wrap(~ factor(chain))
 
 
@@ -241,12 +263,12 @@ p <- mp("x^2 + y^2 - 1")
 
 samps_1 <- rvnorm(250, p^1, sd = .1, output = "tibble", chains = 8)
 samps_2 <- rvnorm(250, p^2, sd = .1, output = "tibble", chains = 8)
-samps_3 <- rvnorm(250, p^3, sd = .1, output = "tibble", chains = 8)
-samps_4 <- rvnorm(250, p^4, sd = .1, output = "tibble", chains = 8)
-samps <- bind_rows(mget(apropos("samps_")))
-samps$power <- rep(seq_along(apropos("samps_")), each = 2000)
+# samps_3 <- rvnorm(250, p^3, sd = .1, output = "tibble", chains = 8)
+# samps_4 <- rvnorm(250, p^4, sd = .1, output = "tibble", chains = 8)
+samps <- bind_rows(mget(apropos("samps_[1-4]")))
+samps$power <- rep(seq_along(apropos("samps_[1-4]")), each = 2000)
 
-ggplot(samps, aes(x, y, color = num < 0)) +
+ggplot(samps, aes(x, y, color = g < 0)) +
   geom_point(size = .5) +
   coord_equal(xlim = c(-3,3), ylim = c(-3,3)) +
   facet_wrap(~ power)
@@ -273,40 +295,32 @@ p <- plug(p, "y", mp(".5 y"))
 samps <- rvnorm(5e3, p, sd = .01, "tibble", chains = 8, refresh = 100)
 ggplot(samps, aes(x, y, color = factor(chain))) +
   geom_point(size = .5) + coord_equal()
+ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .02*c(1,1)) + coord_equal()
+  
+ggplot(samps, aes(x, y, color = factor(chain))) +
+  geom_point(size = .5) + coord_equal() +
+  facet_wrap(~ factor(chain))
 
 # semi-algebraic set
-samps_normd <- rvnorm(5e3, p + mp("s^2"), sd = .01, "tibble", chains = 8,
+samps_normd <- rvnorm(1e4, p + mp("s^2"), sd = .01, "tibble", chains = 8,
   normalized = TRUE, refresh = 100
 )
-samps_unormd <- rvnorm(5e3, p + mp("s^2"), sd = .01, "tibble", chains = 8,
+samps_unormd <- rvnorm(1e4, p + mp("s^2"), sd = .01, "tibble", chains = 8,
   normalized = FALSE, refresh = 100
 )
 
 bind_rows(
-  samps_normd \%>\% mutate(normd = TRUE),
+  samps_normd  \%>\% mutate(normd = TRUE),
   samps_unormd \%>\% mutate(normd = FALSE)
 ) \%>\%
   ggplot(aes(x, y)) +
-    geom_point() +
-    facet_wrap(~ normd) +
-    coord_equal()
-
-bind_rows(
-  samps_normd \%>\% mutate(normd = TRUE),
-  samps_unormd \%>\% mutate(normd = FALSE)
-) \%>\%
-  ggplot(aes(x, y)) +
-    geom_bin2d(bins = 100) +
-    facet_wrap(~ normd) +
+    geom_bin2d(binwidth = .05*c(1,1)) + 
+    facet_grid(normd ~ chain) +
     coord_equal()
 
 
-samps_normd \%>\%
-  ggplot(aes(x, y)) +
-    geom_bin2d(bins = 200) +
-    facet_wrap(~ factor(chain)) +
-    coord_equal()
-
+ggplot(samps_normd, aes(x, y)) + 
+  geom_bin2d(binwidth = .05*c(1,1)) + coord_equal()
 
 }
 

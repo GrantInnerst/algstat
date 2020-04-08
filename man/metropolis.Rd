@@ -5,12 +5,26 @@
 \alias{rawMetropolis}
 \title{The Metropolis Algorithm}
 \usage{
-metropolis(init, moves, iter = 1000L, burn = 0L, thin = 1L,
-  dist = c("hypergeometric", "uniform"), engine = c("C++", "R"),
-  hit_and_run = FALSE, adaptive = FALSE)
+metropolis(
+  init,
+  moves,
+  iter = 1000L,
+  burn = 0L,
+  thin = 1L,
+  dist = c("hypergeometric", "uniform"),
+  engine = c("C++", "R"),
+  hit_and_run = FALSE,
+  adaptive = FALSE
+)
 
-rawMetropolis(init, moves, iter = 1000, dist = "hypergeometric",
-  hit_and_run = FALSE, adaptive = FALSE)
+rawMetropolis(
+  init,
+  moves,
+  iter = 1000,
+  dist = "hypergeometric",
+  hit_and_run = FALSE,
+  adaptive = FALSE
+)
 }
 \arguments{
 \item{init}{the initial step}

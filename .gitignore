@@ -6,3 +6,5 @@ src/*.so
 src/*.dll
 R/.DS_Store
 .DS_Store
+stan/
+

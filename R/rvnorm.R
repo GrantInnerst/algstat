@@ -65,47 +65,46 @@
 #' # returning a data frame
 #' (samps <- rvnorm(2000, p, sd = .1, output = "tibble"))
 #' ggplot(samps, aes(x, y)) + geom_point(size = .5) + coord_equal()
-#' ggplot(samps, aes(x, y, color = `g[1]`)) +
+#' 
+#' ggplot(samps, aes(x, y, color = g)) +
 #'   geom_point(size = .5) +
 #'   scale_color_gradient2() +
 #'   coord_equal()
+#'   
+#' ggplot(samps, aes(x, y)) + 
+#'   stat_density2d(
+#'     aes(fill = stat(density)), 
+#'     geom = "raster", contour = FALSE
+#'    ) + 
+#'   coord_equal()
 #'
 #'
-#' # more than one polynomial, # vars >= # eqns
+#'
+#' # more than one polynomial, # vars > # eqns, underdetermined system
 #' p <- mp(c("x^2 + y^2 + z^2 - 1", "z"))
-#' samps <- rvnorm(500, p, sd = .1, output = "tibble")
+#' (samps <- rvnorm(500, p, sd = .1, output = "tibble"))
+#' ggplot(samps, aes(x, y)) + geom_point(size = .5) + coord_equal()
 #'
-#' ggplot(samps, aes(x, y)) +
-#'   geom_point(size = .5) +
-#'   coord_equal()
+#' ggplot(samps, aes(x, y, color = `g[1]`)) + geom_point() +
+#'   scale_color_gradient2(mid = "gray80") + coord_equal()
 #'
-#' ggplot(samps, aes(x, y, color = `g[1]`)) +
-#'   geom_point(size = .5) +
-#'   scale_color_gradient2() +
-#'   coord_equal()
+#' ggplot(samps, aes(x, y, color = `g[2]`)) + geom_point() +
+#'   scale_color_gradient2(mid = "gray80") + coord_equal()
 #'
-#' ggplot(samps, aes(x, y, color = `g[2]`)) +
-#'   geom_point(size = .5) +
-#'   scale_color_gradient2() +
-#'   coord_equal()
-#'
-#' ggplot(samps, aes(x, z, color = `g[2]`)) +
-#'   geom_point(size = .5) +
-#'   scale_color_gradient2() +
-#'   coord_equal()
+#' ggplot(samps, aes(x, z, color = `g[1]`)) + geom_point() +
+#'   scale_color_gradient2(mid = "gray80") + coord_equal()
 #'
 #'
-#' # overdetermined system, vars < # eqns (not yet supported)
-#' p <- mp(c("x", "y", "x + y", "3 (x^2 + y)", "3 (x^2 - y)"))
-#' samps <- rvnorm(500, p, sd = .1, output = "tibble")
+#'
+#' # more than one polynomial, # vars < # eqns, overdetermined system
+#' p <- mp(c("3 x", "3 y", "2 x + 2 y", "3 (x^2 + y)", "3 (x^2 - y)"))
+#' (samps <- rvnorm(500, p, sd = .1, output = "tibble"))
 #' 
 #' samps %>% 
 #'   select(x, y, starts_with("g")) %>% 
 #'   pivot_longer(starts_with("g"), "equation", "value") %>% 
-#'   ggplot(aes(x, y, color = value)) +
-#'     geom_point(size = .5) +
-#'     scale_color_gradient2() +
-#'     coord_equal() +
+#'   ggplot(aes(x, y, color = value)) + geom_point() +
+#'     scale_color_gradient2(mid = "gray80") + coord_equal() +
 #'     facet_wrap(~ equation)
 #'     
 #'
@@ -113,7 +112,6 @@
 #' ########################################
 #'
 #' rvnorm(2000, p, sd = .1, "tibble", verbose = TRUE)
-#' rvnorm(2000, p, sd = .1, "tibble", refresh = 100)
 #' rvnorm(2000, p, sd = .1, "tibble", refresh = 500)
 #' rvnorm(2000, p, sd = .1, "tibble", refresh = 0) # default
 #' rvnorm(2000, p, sd = .1, "tibble", refresh = -1)
@@ -125,9 +123,9 @@
 #'
 #' options(mc.cores = parallel::detectCores())
 #' p <- mp("x^2 + (4 y)^2 - 1")
-#' samps <- rvnorm(250, p, sd = .01, "tibble", verbose = TRUE, chains = 8)
-#' ggplot(samps, aes(x, y)) + geom_point() + coord_equal()
-#'
+#' (samps <- rvnorm(1e4, p, sd = .01, "tibble", verbose = TRUE, chains = 8))
+#' ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .01*c(1,1)) + coord_equal()
+#' # decrease sd to get more uniform sampling
 #'
 #'
 #' ## windowing for unbounded varieties
@@ -135,17 +133,17 @@
 #' # windowing is needed for unbounded varieties
 #' # in the following, look at the parameters block
 #'
-#' p <- mp("x y - 1") # unbounded variety
+#' p <- mp("x y - 1") # unbounded variety, 1 poly
+#' p <- mp(c("x y - 1", "y - x")) # 2 polys
 #'
 #' rvnorm(1e3, p, sd = .01, "tibble", code_only = TRUE)
-#'
-#' rvnorm(1e3, p, sd = .01, "tibble", w = 1.15, code_only = TRUE)
+#' rvnorm(1e3, p, sd = .01, "tibble", code_only = TRUE, w = 1.15)
 #'
 #' window <- list("x" = c(-1.5, 1.25), "y" = c(-2, 1.5))
-#' rvnorm(1e3, p, sd = .01, "tibble", w = window, code_only = TRUE)
+#' rvnorm(1e3, p, sd = .01, "tibble", code_only = TRUE, w = window)
 #'
 #' window <- list("x" = c(-1.5, 1.5))
-#' rvnorm(1e3, p, sd = .01, "tibble", w = window, code_only = TRUE)
+#' rvnorm(1e3, p, sd = .01, "tibble", code_only = TRUE, w = window)
 #'
 #'
 #'
@@ -158,12 +156,14 @@
 #' p <- mp("(x^2 + y^2)^2 - 2 (x^2 - y^2)")
 #'
 #' # normalized, good
-#' (samps <- rvnorm(2000, p, .025, "tibble"))
+#' (samps <- rvnorm(2000, p, .05, "tibble"))
 #' ggplot(samps, aes(x, y)) + geom_point(size = .5) + coord_equal()
+#' ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .05*c(1,1)) + coord_equal()
 #'
 #' # unnormalized, bad
-#' (samps <- rvnorm(2000, p, .025, "tibble", normalized = FALSE))
+#' (samps <- rvnorm(2000, p, .05, "tibble", normalized = FALSE))
 #' ggplot(samps, aes(x, y)) + geom_point(size = .5) + coord_equal()
+#' ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .05*c(1,1)) + coord_equal()
 #'
 #'
 #'
@@ -175,20 +175,20 @@
 #' # this is the projection of the sphere into the xy-plane.
 #'
 #' p <- mp("1 - (x^2 + y^2) - s^2")
-#' samps <- rvnorm(1e4, p, sd = .01, "tibble", chains = 8)
-#' ggplot(samps, aes(x, y)) + geom_point(size = .5) + coord_equal()
-#' ggplot(samps, aes(x, y)) + geom_bin2d() + coord_equal()
+#' samps <- rvnorm(1e4, p, sd = .1, "tibble", chains = 8, refresh = 1e3)
+#' ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .05*c(1,1)) + coord_equal()
 #'
 #' ggplot(sample_n(samps, 2e3), aes(x, y, color = s)) +
 #'   geom_point(size = .5) +
+#'   scale_color_gradient2() +
 #'   coord_equal()
 #'
 #' # alternative representation
-#' # x^2 + y^2 - 1 <= 0 iff s^2 (x^2 + y^2 - 1) == -1
-#' # so that s^2 (x^2 + y^2 - 1) + 1 == 0
-#' # while this strategy works in theory, it doesn't work
-#' # so well in practice, since s^2 is unbounded.
-#' # it's gradient is also more complicated.
+#' # x^2 + y^2 - 1 <= 0 iff s^2 (x^2 + y^2 - 1) + 1 == 0
+#' # note that it's gradient is more complicated.
+#' p <- mp("s^2 (x^2 + y^2 - 1) + 1")
+#' samps <- rvnorm(1e4, p, sd = .1, "tibble", chains = 8, w = 2, refresh = 1e3)
+#' ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .05*c(1,1)) + coord_equal()
 #'
 #'
 #' ## keeping the warmup / the importance of multiple chains
@@ -197,9 +197,15 @@
 #' p <- mp("((x + 1.5)^2 + y^2 - 1) ((x - 1.5)^2 + y^2 - 1)")
 #' ggvariety(p, xlim = c(-3,3)) + coord_equal()
 #'
-#' samps <- rvnorm(500, p, sd = .05, "tibble", chains = 8, keep_warmup = TRUE, w = 5)
+#' # notice the migration of chains initialized away from the distribution
+#' # (it helps to make the graphic large on your screen)
+#' samps <- rvnorm(500, p, sd = .05, "tibble", chains = 8, keep_warmup = TRUE)
 #' ggplot(samps, aes(x, y, color = iter)) +
 #'   geom_point(size = 1, alpha = .5) + geom_path(alpha = .2) +
+#'   coord_equal() + facet_wrap(~ factor(chain))
+#'   
+#' samps <- rvnorm(2500, p, sd = .05, "tibble", chains = 8, keep_warmup = TRUE)
+#' ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .05*c(1,1)) + 
 #'   coord_equal() + facet_wrap(~ factor(chain))
 #'
 #'
@@ -210,12 +216,12 @@
 #'
 #' samps_1 <- rvnorm(250, p^1, sd = .1, output = "tibble", chains = 8)
 #' samps_2 <- rvnorm(250, p^2, sd = .1, output = "tibble", chains = 8)
-#' samps_3 <- rvnorm(250, p^3, sd = .1, output = "tibble", chains = 8)
-#' samps_4 <- rvnorm(250, p^4, sd = .1, output = "tibble", chains = 8)
-#' samps <- bind_rows(mget(apropos("samps_")))
-#' samps$power <- rep(seq_along(apropos("samps_")), each = 2000)
+#' # samps_3 <- rvnorm(250, p^3, sd = .1, output = "tibble", chains = 8)
+#' # samps_4 <- rvnorm(250, p^4, sd = .1, output = "tibble", chains = 8)
+#' samps <- bind_rows(mget(apropos("samps_[1-4]")))
+#' samps$power <- rep(seq_along(apropos("samps_[1-4]")), each = 2000)
 #'
-#' ggplot(samps, aes(x, y, color = num < 0)) +
+#' ggplot(samps, aes(x, y, color = g < 0)) +
 #'   geom_point(size = .5) +
 #'   coord_equal(xlim = c(-3,3), ylim = c(-3,3)) +
 #'   facet_wrap(~ power)
@@ -242,40 +248,32 @@
 #' samps <- rvnorm(5e3, p, sd = .01, "tibble", chains = 8, refresh = 100)
 #' ggplot(samps, aes(x, y, color = factor(chain))) +
 #'   geom_point(size = .5) + coord_equal()
+#' ggplot(samps, aes(x, y)) + geom_bin2d(binwidth = .02*c(1,1)) + coord_equal()
+#'   
+#' ggplot(samps, aes(x, y, color = factor(chain))) +
+#'   geom_point(size = .5) + coord_equal() +
+#'   facet_wrap(~ factor(chain))
 #'
 #' # semi-algebraic set
-#' samps_normd <- rvnorm(5e3, p + mp("s^2"), sd = .01, "tibble", chains = 8,
+#' samps_normd <- rvnorm(1e4, p + mp("s^2"), sd = .01, "tibble", chains = 8,
 #'   normalized = TRUE, refresh = 100
 #' )
-#' samps_unormd <- rvnorm(5e3, p + mp("s^2"), sd = .01, "tibble", chains = 8,
+#' samps_unormd <- rvnorm(1e4, p + mp("s^2"), sd = .01, "tibble", chains = 8,
 #'   normalized = FALSE, refresh = 100
 #' )
 #'
 #' bind_rows(
-#'   samps_normd %>% mutate(normd = TRUE),
+#'   samps_normd  %>% mutate(normd = TRUE),
 #'   samps_unormd %>% mutate(normd = FALSE)
 #' ) %>%
 #'   ggplot(aes(x, y)) +
-#'     geom_point() +
-#'     facet_wrap(~ normd) +
-#'     coord_equal()
-#'
-#' bind_rows(
-#'   samps_normd %>% mutate(normd = TRUE),
-#'   samps_unormd %>% mutate(normd = FALSE)
-#' ) %>%
-#'   ggplot(aes(x, y)) +
-#'     geom_bin2d(bins = 100) +
-#'     facet_wrap(~ normd) +
+#'     geom_bin2d(binwidth = .05*c(1,1)) + 
+#'     facet_grid(normd ~ chain) +
 #'     coord_equal()
 #'
 #'
-#' samps_normd %>%
-#'   ggplot(aes(x, y)) +
-#'     geom_bin2d(bins = 200) +
-#'     facet_wrap(~ factor(chain)) +
-#'     coord_equal()
-#'
+#' ggplot(samps_normd, aes(x, y)) + 
+#'   geom_bin2d(binwidth = .05*c(1,1)) + coord_equal()
 #'
 #' }
 #' 
@@ -316,128 +314,231 @@ rvnorm <- function(
   ...
 ) {
   
+  
   # cran guard
   chain <- NULL; rm(chain)
-  num <- NULL; rm(num)
-  denom <- NULL; rm(denom)
+  g <- NULL; rm(g)
+  ndg <- NULL; rm(ndg)
   ng <- NULL; rm(ng)
   lp__ <- NULL; rm(lp__)
   iter <- NULL; rm(iter)
   . <- NULL; rm(.)
   
-  if (!is.mpolyList(poly)) poly <- structure(list(poly), class = "mpolyList")
   
-  vars <- mpoly::vars(poly)
+  if (is.mpoly(poly)) {
+    n_eqs <- 1L
+  } else if (is.character(poly) || is.mpolyList(poly)) {
+    n_eqs <- length(poly)
+  } else {
+    stop("`poly` should be either a character vector, mpoly, or mpolyList.", call. = FALSE)
+  }
+
+  if (missing(refresh)) if (verbose) refresh <- max(ceiling(n/10), 1L) else refresh <- 0L
+  if (!missing(refresh)) stopifnot(is.numeric(refresh), length(refresh) == 1L)  
   
-  n_eqs  <- length(poly)
-  n_vars <- length(vars)
-  # if (n_eqs > n_vars) stop("Overdetermined systems not yet supported.")
   
-  if (missing(refresh)) if (verbose) refresh <- max(n/10L, 1) else refresh <- 0L
-  if (!missing(refresh)) stopifnot(is.numeric(refresh) && length(refresh) == 1L)
-  
-  
-  
-  ## create stan code
-  ########################################
-  
-  needs_to_compile_new_model <- TRUE
-  
-  if (needs_to_compile_new_model) {
-    
-    printed_polys <- mpoly:::print.mpolyList(poly, silent = TRUE, stars = TRUE, plus_pad = 0, times_pad = 0) %>% str_replace_all("\\*\\*", "^")
-    printed_polys <- str_c(printed_polys, collapse = ", ")
-    
-    d <- get("deriv.mpoly", asNamespace("mpoly"))
+  mpoly_to_stan <- function (mpoly) {
     p <- get("print.mpoly", asNamespace("mpoly"))
+    p(mpoly, stars = TRUE, silent = TRUE, plus_pad = 0L, times_pad = 0L) %>% 
+      str_replace_all("[*]{2}", "^")
+  }
+  
+  mpolyList_to_stan <- function (mpolyList) {
+    p <- get("print.mpolyList", asNamespace("mpoly"))
+    p(mpolyList, silent = TRUE, stars = TRUE, plus_pad = 0, times_pad = 0) %>% 
+      str_replace_all("\\*\\*", "^") %>% 
+      str_c(collapse = ", ")
+  }
+  
+  d <- get("deriv.mpoly", asNamespace("mpoly"))
+  
+
+  # create stan code --------------------------------------------------------
+
+  needs_to_compile_model <- TRUE
+  
+  if (needs_to_compile_model) {
+    
+    
+    if (n_eqs == 1L) {
+    # single polynomial provided
       
-    printed_jac <- array("", dim = c(n_eqs, n_vars))
-    for (i in 1:n_eqs) {
-      for (j in 1:n_vars) {
-        if (normalized) {
-          printed_jac[i,j] <- p(d(poly[[i]], vars[j]), silent = TRUE, stars = TRUE, plus_pad = 0L, times_pad = 0L)
+      
+      
+      if (!is.mpoly(poly)) poly <- mp(poly)
+      if (missing(vars)) vars <- mpoly::vars(poly)
+      n_vars <- length(vars)
+      reorder.mpoly <- get("reorder.mpoly", asNamespace("mpoly"))
+      poly <- reorder.mpoly(poly, varorder = sort(vars))
+      
+      g_string <- mpoly_to_stan(poly)
+      
+      if (normalized) {
+        if (n_vars > 1) {
+          grad <- deriv(poly, var = mpoly::vars(poly))
+          ndg_sq <- Reduce(`+`, grad^2) 
         } else {
-          printed_jac[i,j] <- if (i == j) "1" else "0"
+          ndg_sq <- gradient(poly)^2
+        }
+        ndg_sq_string <- mpoly_to_stan(ndg_sq)
+        ndg_string <- glue::glue("sqrt({ndg_sq_string})")
+      } else {
+        ndg_string <- "1"
+      }
+        
+      # set variables
+      if (missing(w)) {
+        parms <- glue::glue("real {vars};") 
+      } else {
+        if (is.numeric(w) && length(w) == 1L) {
+          parms <- glue::glue("real<lower=-{w},upper={w}> {vars};") 
+        } else if (is.list(w)) {
+          stopifnot(all(names(w) %in% vars))
+          parms <- vector("character", n_vars)
+          for (var_ndx in seq_along(vars)) {
+            parms[var_ndx] <- if (vars[var_ndx] %in% names(w)) {
+              var_ndx_in_w <- which(names(w) == vars[var_ndx])
+              glue::glue("real<lower={w[[var_ndx_in_w]][1]},upper={w[[var_ndx_in_w]][2]}> {vars[var_ndx]};") 
+            } else {
+              glue::glue("real {vars[var_ndx]};") 
+            }
+          }
+        } else {
+          stop("bound parameter misspecified, see ?rvnorm.", call. = FALSE)
         }
       }
-    }
-    printed_jac <- printed_jac %>% 
-      apply(1L, str_c, collapse = ", ") %>% 
-      str_c("      [", ., "]", collapse = ", \n") %>% 
-      str_c("[\n", ., "\n    ]") %>% 
-      str_replace_all("\\*\\*", "^")
+      parms <- parms %>% str_c(collapse = "\n  ") 
+      
+      stan_code <- glue::glue("
+data {
+  real<lower=0> si;
+}
+      
+parameters {
+  {{parms}}
+} 
+      
+transformed parameters {
+  real g = {{g_string}};
+  real ndg = {{ndg_string}};
+} 
+      
+model {
+  target += normal_lpdf(0.00 | g/ndg, si);
+}
+      ",  .open = "{{", .close = "}}"
+      )
+      if (verbose) cat(stan_code, "\n")  
+      if (code_only) return(stan_code)
+
+      # compile code
+      if (!verbose) message("Compiling model... ", appendLF = FALSE)
+      model <- rstan::stan_model("model_code" = stan_code, ...)
+      if (!verbose) message("done.")
+      
+      
     
-    
-    # set variables
-    if (missing(w)) {
-      parms <- glue::glue("real {vars};") 
     } else {
-      if (is.numeric(w) && length(w) == 1L) {
-        parms <- glue::glue("real<lower=-{w},upper={w}> {vars};") 
-      } else if (is.list(w)) {
-        stopifnot(all(names(w) %in% vars))
-        parms <- vector("character", n_vars)
-        for (var_ndx in seq_along(vars)) {
-          parms[var_ndx] <- if (vars[var_ndx] %in% names(w)) {
-            var_ndx_in_w <- which(names(w) == vars[var_ndx])
-            glue::glue("real<lower={w[[var_ndx_in_w]][1]},upper={w[[var_ndx_in_w]][2]}> {vars[var_ndx]};") 
+    # multiple polynomials provided
+      
+      vars <- mpoly::vars(poly)
+      n_vars <- length(vars)
+      # if (n_eqs > n_vars) stop("Overdetermined systems not yet supported.")
+      
+    
+      printed_polys <- mpolyList_to_stan(poly)
+        
+      printed_jac <- array("", dim = c(n_eqs, n_vars))
+      for (i in 1:n_eqs) {
+        for (j in 1:n_vars) {
+          if (normalized) {
+            printed_jac[i,j] <- mpoly_to_stan(d(poly[[i]], vars[j]))
           } else {
-            glue::glue("real {vars[var_ndx]};") 
+            printed_jac[i,j] <- if (i == j) "1" else "0"
           }
         }
-      } else {
-        stop("bound parameter misspecified, see ?rvnorm.", call. = FALSE)
       }
-    }
-    parms <- parms %>% str_c(collapse = "\n    ") 
-
-    # variance expression
-    if (is.numeric(sd) && is.vector(sd) && length(sd) == 1L) {
-      Si_exp <- if (n_vars >= n_eqs) {
-        glue::glue("{sd^2} * tcrossprod(J)") # = "{sd^2} * J * J'"
-      } else {
-        glue::glue("{sd^2} * (tcrossprod(J) + diag_matrix(rep_vector(1, {n_eqs})))")
-      }
-    } else if (is.numeric(sd) && is.vector(sd)) {
-      stop("This sd not yet supported.")
-    } else if (is.numeric(sd) && is.matrix(sd)) {
-      stop("This sd not yet supported.")
-      Si_exp <- glue::glue("quad_form_sym(sd, J)") # = J' * sd * J
-    }
-    
-    stan_code <- glue::glue("
-      parameters {
-        {{parms}}
-      } 
+      printed_jac <- printed_jac %>% 
+        apply(1L, str_c, collapse = ", ") %>% 
+        str_c("      [", ., "]", collapse = ", \n") %>% 
+        str_c("[\n", ., "\n    ]") %>% 
+        str_replace_all("\\*\\*", "^")
       
-      transformed parameters {
-        vector[{{n_eqs}}] g = [{{printed_polys}}]';
-        matrix[{{n_eqs}},{{n_vars}}] J = {{printed_jac}};
-        matrix[{{n_eqs}},{{n_eqs}}] Si = {{Si_exp}};
-      } 
       
-      model {
-        target += multi_normal_lpdf(g | rep_vector(0, {{n_eqs}}), Si);
+      # set variables
+      if (missing(w)) {
+        parms <- glue::glue("real {vars};") 
+      } else {
+        if (is.numeric(w) && length(w) == 1L) {
+          parms <- glue::glue("real<lower=-{w},upper={w}> {vars};") 
+        } else if (is.list(w)) {
+          stopifnot(all(names(w) %in% vars))
+          parms <- vector("character", n_vars)
+          for (var_ndx in seq_along(vars)) {
+            parms[var_ndx] <- if (vars[var_ndx] %in% names(w)) {
+              var_ndx_in_w <- which(names(w) == vars[var_ndx])
+              glue::glue("real<lower={w[[var_ndx_in_w]][1]},upper={w[[var_ndx_in_w]][2]}> {vars[var_ndx]};") 
+            } else {
+              glue::glue("real {vars[var_ndx]};") 
+            }
+          }
+        } else {
+          stop("bound parameter misspecified, see ?rvnorm.", call. = FALSE)
+        }
       }
-    ",  .open = "{{", .close = "}}"
-    )
-    if (verbose) cat(stan_code, "\n")  
-    if (code_only) return(stan_code)
-
-    # compile code
-    if (!verbose) message("Compiling model... ", appendLF = FALSE)
-    model <- rstan::stan_model("model_code" = stan_code, ...)
-    if (!verbose) message("done.")
-    
+      parms <- parms %>% str_c(collapse = "\n  ") 
+  
+      # normalization matrix
+      if (is.numeric(sd) && is.vector(sd) && length(sd) == 1L) {
+        
+        gbar_string <- if (n_vars == n_eqs) {
+          "J \\ g"
+        } else if (n_vars > n_eqs) {
+          "J' * ((J*J') \\ g)"
+        } else {
+          "(J'*J) \\ (J'*g)"
+        }
+        
+      } else stop("This sd not yet supported.") 
+       
+      
+      # write stan code
+      stan_code <- glue::glue("
+data {
+  real<lower=0> si;
+}
+      
+parameters {
+  {{parms}}
+} 
+        
+transformed parameters {
+  vector[{{n_eqs}}] g = [{{printed_polys}}]';
+  matrix[{{n_eqs}},{{n_vars}}] J = {{printed_jac}};
+} 
+        
+model {
+  target += normal_lpdf(0.00 | {{gbar_string}}, si);
+}
+      ",  .open = "{{", .close = "}}"
+      )
+      if (verbose) cat(stan_code, "\n")  
+      if (code_only) return(stan_code)
+  
+      # compile code
+      if (!verbose) message("Compiling model... ", appendLF = FALSE)
+      model <- rstan::stan_model("model_code" = stan_code, ...)
+      if (!verbose) message("done.")
+    }
   }
   
   
-  ## sample from the distribution
-  ######################################## 
+
+  # run stan sampler --------------------------------------------------------
   
   fit <- rstan::sampling(
     "object" = model,
-    # "data" = data, # will be list of coefficients?
+    "data" = list("si" = sd),
     "chains" = chains,
     "iter" = n + warmup,
     "warmup" = warmup,
@@ -449,19 +550,22 @@ rvnorm <- function(
   )
   
   
-  ## return, parse output as desired 
-  ########################################
   
+
+  # parse output and return -------------------------------------------------
+
   if (output == "stanfit") return(fit)
+  
+  convert_mat_to_tibble_add_chain <- function(mat, chain_no) {
+    tibble::as_tibble(mat) %>% mutate(chain = chain_no)
+  }
     
   if (output == "tibble") {
     
     samps <- fit %>%
       rstan::extract(permuted = FALSE, inc_warmup = keep_warmup) %>% 
       purrr::array_branch(2L) %>% 
-      purrr::imap(
-        ~ tibble::as_tibble(.x) %>% mutate(chain = .y)
-      ) %>% 
+      purrr::imap(convert_mat_to_tibble_add_chain) %>% 
       bind_rows() %>% 
       mutate(
         iter = rep((as.integer(!keep_warmup)*warmup+1):(n+warmup), chains),
@@ -472,21 +576,20 @@ rvnorm <- function(
     
   } 
   
+  
   if (output == "simple") { 
 
     samps <- fit %>% 
       rstan::extract(permuted = FALSE, inc_warmup = keep_warmup) %>% 
       purrr::array_branch(2L) %>% 
-      purrr::imap(
-        ~ tibble::as_tibble(.x) %>% mutate(chain = .y)
-      ) %>% 
+      purrr::imap(convert_mat_to_tibble_add_chain) %>% 
       bind_rows() %>% 
       mutate(
         iter = rep((as.integer(!keep_warmup)*warmup+1):(n+warmup), chains),
         chain = as.integer(str_sub(chain, 7L))
       ) %>% 
-      # dplyr::select(-num, -denom, -ng, -lp__, -chain, -iter) %>% 
-      .[1:n_vars] %>% 
+      dplyr::select(-g, -ndg, -lp__, -chain, -iter) %>%
+      # .[1:n_vars] %>% 
       as.matrix()
     
     return(samps)
@@ -494,4 +597,25 @@ rvnorm <- function(
   }
   
 }
+
+
+
+
+
+
+# 
+# 
+# 
+# stanfit_to_tibble <- function(stanfit, inc_warmup) {
+#   
+# }
+# 
+# 
+
+
+
+
+
+
+
 
